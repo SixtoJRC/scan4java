@@ -3,6 +3,7 @@ package com.sijareca.scan4java.internal.wia;
 import com.sijareca.scan4java.ScanException;
 //import com.sun.jna.platform.win32.COM.COMUtils;
 import com.sun.jna.platform.win32.Ole32;
+import com.sun.jna.platform.win32.OleAuto;
 import com.sun.jna.platform.win32.WTypes;
 import com.sun.jna.ptr.PointerByReference;
 
@@ -109,4 +110,46 @@ class WiaSession implements AutoCloseable {
             comInitialized = false;
         }
     }
+
+    /**
+     * Abre un dispositivo WIA por ID y devuelve su IWiaItem raíz.
+     * El llamador es responsable de llamar Release() cuando termine.
+     */
+    WiaLib.IWiaItem openDevice(String deviceId) throws ScanException {
+        PointerByReference pDevMgr = new PointerByReference();
+        var hr = Ole32.INSTANCE.CoCreateInstance(
+            WiaLib.CLSID_WiaDevMgr, null,
+            WTypes.CLSCTX_LOCAL_SERVER,
+            WiaLib.IID_IWiaDevMgr,
+            pDevMgr);
+
+        if (hr.intValue() != WiaLib.S_OK) {
+            throw new ScanException("Cannot create WIA DevMgr (hr=0x"
+                                    + Integer.toHexString(hr.intValue()) + ")");
+        }
+
+        WiaLib.IWiaDevMgr devMgr = new WiaLib.IWiaDevMgr(pDevMgr.getValue());
+        try {
+            // Crear BSTR con SysAllocString — forma correcta y no deprecada
+            com.sun.jna.platform.win32.WTypes.BSTR bstrId =
+                OleAuto.INSTANCE.SysAllocString(deviceId);
+            try {
+                PointerByReference pDevice = new PointerByReference();
+                hr = devMgr.CreateDevice(bstrId, pDevice);
+
+                if (hr.intValue() != WiaLib.S_OK) {
+                    throw new ScanException("Cannot open WIA device '" + deviceId
+                                            + "' (hr=0x"
+                                            + Integer.toHexString(hr.intValue()) + ")");
+                }
+                return new WiaLib.IWiaItem(pDevice.getValue());
+            } finally {
+                // Liberar el BSTR siempre
+                OleAuto.INSTANCE.SysFreeString(bstrId);
+            }
+        } finally {
+            devMgr.Release();
+        }
+    }
+
 }

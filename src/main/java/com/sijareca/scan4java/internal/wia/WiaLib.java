@@ -41,6 +41,19 @@ class WiaLib {
     static final int S_OK    = 0x00000000;
     static final int S_FALSE = 0x00000001;
 
+    // IID de IWiaDevMgr — GetImageDlg
+    static final GUID IID_IWiaItem = new GUID(
+        "{4db1ad10-3391-11d2-9a33-00c04fa36145}");
+
+    // Propiedades de formato de salida
+    static final int WIA_IPA_FORMAT       = 4106;
+    static final int WIA_IPA_TYMED        = 4108;
+    static final int TYMED_FILE           = 2;
+
+    // GUID formato BMP
+    static final GUID WiaImgFmt_BMP = new GUID(
+        "{B96B3CAB-0728-11D3-9D7B-0000F81EF32E}");
+
     /**
      * Interfaz IWiaDevMgr — gestiona los dispositivos WIA instalados.
      * Solo mapeamos los métodos que necesitamos.
@@ -55,6 +68,14 @@ class WiaLib {
         HRESULT EnumDeviceInfo(int lFlag, PointerByReference ppIEnum) {
             return (HRESULT) _invokeNativeObject(3,
                 new Object[]{getPointer(), lFlag, ppIEnum},
+                HRESULT.class);
+        }
+        
+        // CreateDevice(bstrDeviceID, ppWiaItemRoot) — índice vtable 6
+        HRESULT CreateDevice(com.sun.jna.platform.win32.WTypes.BSTR bstrDeviceID,
+                            PointerByReference ppWiaItemRoot) {
+            return (HRESULT) _invokeNativeObject(6,
+                new Object[]{getPointer(), bstrDeviceID, ppWiaItemRoot},
                 HRESULT.class);
         }
     }
@@ -96,6 +117,91 @@ class WiaLib {
         HRESULT ReadMultiple(int cpspec, PROPSPEC[] rgpspec, PROPVARIANT[] rgpropvar) {
             return (HRESULT) _invokeNativeObject(3,
                 new Object[]{getPointer(), cpspec, rgpspec, rgpropvar},
+                HRESULT.class);
+        }
+
+        HRESULT WriteMultiple(int cpspec, PROPSPEC[] rgpspec,
+                            PROPVARIANT[] rgpropvar, int propidNameFirst) {
+            return (HRESULT) _invokeNativeObject(4,
+                new Object[]{getPointer(), cpspec, rgpspec, rgpropvar, propidNameFirst},
+                HRESULT.class);
+        }
+    }
+
+    /**
+     * IWiaItem — representa un dispositivo o item WIA.
+     * Solo mapeamos EnumChildItems y GetItemType.
+     */
+    static class IWiaItem extends Unknown {
+
+        IWiaItem(Pointer p) {
+            super(p);
+        }
+
+        // GetItemType() — índice vtable 3
+        HRESULT GetItemType(Pointer pItemType) {
+            return (HRESULT) _invokeNativeObject(3,
+                new Object[]{getPointer(), pItemType},
+                HRESULT.class);
+        }
+
+        // EnumChildItems(ppIEnumWiaItem) — índice vtable 8
+        HRESULT EnumChildItems(PointerByReference ppIEnumWiaItem) {
+            return (HRESULT) _invokeNativeObject(8,
+                new Object[]{getPointer(), ppIEnumWiaItem},
+                HRESULT.class);
+        }
+
+        // QueryInterface para obtener IWiaPropertyStorage
+        HRESULT queryPropertyStorage(PointerByReference ppProps) {
+            return (HRESULT) _invokeNativeObject(0,
+                new Object[]{getPointer(), IID_IWiaPropertyStorage, ppProps},
+                HRESULT.class);
+        }
+
+        // QueryInterface para obtener IWiaDataTransfer
+        HRESULT queryDataTransfer(PointerByReference ppXfer) {
+            return (HRESULT) _invokeNativeObject(0,
+                new Object[]{getPointer(), IWiaDataTransfer.IID, ppXfer},
+                HRESULT.class);
+        }
+    }
+
+    /**
+     * IEnumWiaItem — enumerador de items hijo de un dispositivo.
+     */
+    static class IEnumWiaItem extends Unknown {
+
+        IEnumWiaItem(Pointer p) {
+            super(p);
+        }
+
+        // Next(celt, rgelt, pceltFetched) — índice vtable 3
+        HRESULT Next(int celt, PointerByReference rgelt, Pointer pceltFetched) {
+            return (HRESULT) _invokeNativeObject(3,
+                new Object[]{getPointer(), celt, rgelt, pceltFetched},
+                HRESULT.class);
+        }
+    }
+
+    /**
+     * IWiaDataTransfer — transfiere datos desde un item WIA a fichero.
+     */
+    static class IWiaDataTransfer extends Unknown {
+
+        // IID de IWiaDataTransfer
+        static final GUID IID = new GUID(
+            "{a6cef998-a5b0-11d2-a08f-00c04f72dc3c}");
+
+        IWiaDataTransfer(Pointer p) {
+            super(p);
+        }
+
+        // idtGetData(pMedium, pCallback) — índice vtable 3
+        // pCallback = null → sin notificaciones de progreso
+        HRESULT idtGetData(STGMEDIUM pMedium, Pointer pCallback) {
+            return (HRESULT) _invokeNativeObject(3,
+                new Object[]{getPointer(), pMedium, pCallback},
                 HRESULT.class);
         }
     }
@@ -143,4 +249,15 @@ class WiaLib {
             return data == null ? 0 : (int) Pointer.nativeValue(data);
         }
     }
+
+    // STGMEDIUM simplificado — solo necesitamos TYMED_FILE
+    @Structure.FieldOrder({"tymed", "unionData", "pUnkForRelease"})
+    static class STGMEDIUM extends Structure {
+        public int     tymed;         // TYMED_FILE = 2
+        public Pointer unionData;     // lpszFileName como LPOLESTR
+        public Pointer pUnkForRelease;
+    }
+
+
+
 }
