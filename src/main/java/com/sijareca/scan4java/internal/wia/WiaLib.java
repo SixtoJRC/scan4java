@@ -2,14 +2,8 @@ package com.sijareca.scan4java.internal.wia;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
-//import com.sun.jna.platform.win32.COM.COMUtils;
 import com.sun.jna.platform.win32.COM.Unknown;
 import com.sun.jna.platform.win32.Guid.GUID;
-//import com.sun.jna.platform.win32.Guid.REFIID;
-//import com.sun.jna.platform.win32.OaIdl.SAFEARRAY;
-//import com.sun.jna.platform.win32.Ole32;
-//import com.sun.jna.platform.win32.Variant.VARIANT;
-//import com.sun.jna.platform.win32.WTypes.BSTR;
 import com.sun.jna.platform.win32.WinNT.HRESULT;
 import com.sun.jna.ptr.PointerByReference;
 
@@ -44,6 +38,11 @@ class WiaLib {
     // IID de IWiaDevMgr — GetImageDlg
     static final GUID IID_IWiaItem = new GUID(
         "{4db1ad10-3391-11d2-9a33-00c04fa36145}");
+
+    // Propiedades de resolución y color del dispositivo
+    static final int WIA_DPS_HORIZONTAL_RESOLUTION = 6147;
+    static final int WIA_DPS_VERTICAL_RESOLUTION   = 6148;
+    static final int WIA_IPA_DATATYPE              = 4103;
 
     // Propiedades de formato de salida
     static final int WIA_IPA_FORMAT       = 4106;

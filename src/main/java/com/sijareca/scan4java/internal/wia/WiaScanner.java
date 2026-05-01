@@ -83,14 +83,16 @@ public class WiaScanner implements Scanner {
                                 ScanConfig config) throws ScanException {
         PointerByReference pProps = new PointerByReference();
         HRESULT hr = device.queryPropertyStorage(pProps);
-        if (hr.intValue() != WiaLib.S_OK) return;
+        if (hr.intValue() != WiaLib.S_OK)
+            throw new ScanException("Cannot access device properties (hr=0x"
+                                    + Integer.toHexString(hr.intValue()) + ")");
 
         WiaLib.IWiaPropertyStorage props =
             new WiaLib.IWiaPropertyStorage(pProps.getValue());
         try {
-            writeIntProperty(props, 6147, config.getDpi());
-            writeIntProperty(props, 6148, config.getDpi());
-            writeIntProperty(props, 4103,
+            writeIntProperty(props, WiaLib.WIA_DPS_HORIZONTAL_RESOLUTION, config.getDpi());
+            writeIntProperty(props, WiaLib.WIA_DPS_VERTICAL_RESOLUTION,   config.getDpi());
+            writeIntProperty(props, WiaLib.WIA_IPA_DATATYPE,
                 config.getColor() == ColorMode.COLOR ? 3 :
                 config.getColor() == ColorMode.GRAYSCALE ? 2 : 0);
         } finally {
@@ -102,7 +104,9 @@ public class WiaScanner implements Scanner {
                             ScanConfig config) throws ScanException {
         PointerByReference pProps = new PointerByReference();
         HRESULT hr = item.queryPropertyStorage(pProps);
-        if (hr.intValue() != WiaLib.S_OK) return;
+        if (hr.intValue() != WiaLib.S_OK)
+            throw new ScanException("Cannot access item properties (hr=0x"
+                                    + Integer.toHexString(hr.intValue()) + ")");
 
         WiaLib.IWiaPropertyStorage props =
             new WiaLib.IWiaPropertyStorage(pProps.getValue());
@@ -169,13 +173,16 @@ public class WiaScanner implements Scanner {
     }
 
     private void writeIntProperty(WiaLib.IWiaPropertyStorage props,
-                                int propId, int value) {
+                                int propId, int value) throws ScanException {
         WiaLib.PROPSPEC[]    specs = { new WiaLib.PROPSPEC(propId) };
         WiaLib.PROPVARIANT[] vars  = { new WiaLib.PROPVARIANT() };
         vars[0].vt   = WiaLib.PROPVARIANT.VT_I4;
         vars[0].data = Pointer.createConstant(value);
         vars[0].write();
-        props.WriteMultiple(1, specs, vars, 2);
+        HRESULT hr = props.WriteMultiple(1, specs, vars, 2);
+        if (hr.intValue() != WiaLib.S_OK)
+            throw new ScanException("Failed to write WIA property " + propId
+                                    + " (hr=0x" + Integer.toHexString(hr.intValue()) + ")");
     }
 
     private static Memory toWideString(String s) {

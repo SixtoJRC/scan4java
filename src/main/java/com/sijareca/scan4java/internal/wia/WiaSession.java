@@ -1,7 +1,6 @@
 package com.sijareca.scan4java.internal.wia;
 
 import com.sijareca.scan4java.ScanException;
-//import com.sun.jna.platform.win32.COM.COMUtils;
 import com.sun.jna.platform.win32.Ole32;
 import com.sun.jna.platform.win32.OleAuto;
 import com.sun.jna.platform.win32.WTypes;

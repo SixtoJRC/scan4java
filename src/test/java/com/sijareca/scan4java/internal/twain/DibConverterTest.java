@@ -81,4 +81,80 @@ class DibConverterTest {
         assertThrows(IllegalArgumentException.class,
                      () -> DibConverter.toBufferedImage(mem));
     }
+
+    @Test
+    void nullPointerThrowsException() {
+        assertThrows(IllegalArgumentException.class,
+                     () -> DibConverter.toBufferedImage(null));
+    }
+
+    @Test
+    void smallBiSizeThrowsException() {
+        Memory mem = new Memory(40);
+        mem.setInt(0, 20); // biSize = 20 < 40
+        assertThrows(IllegalArgumentException.class,
+                     () -> DibConverter.toBufferedImage(mem));
+    }
+
+    @Test
+    void zeroDimensionsThrowsException() {
+        Memory mem = new Memory(40);
+        mem.setInt(0, 40);            // biSize OK
+        mem.setInt(4, 0);             // biWidth = 0 — inválido
+        mem.setInt(8, 1);
+        mem.setShort(14, (short) 24);
+        assertThrows(IllegalArgumentException.class,
+                     () -> DibConverter.toBufferedImage(mem));
+    }
+
+    @Test
+    void convert8bitDib() {
+        int width = 1, height = 1, numColors = 2;
+        int rowBytes = 4; // 1 byte píxel + 3 bytes padding
+        Memory mem = new Memory(40 + numColors * 4 + height * rowBytes);
+
+        mem.setInt(0,  40);            // biSize
+        mem.setInt(4,  width);         // biWidth
+        mem.setInt(8,  height);        // biHeight (bottom-up)
+        mem.setShort(12, (short) 1);   // biPlanes
+        mem.setShort(14, (short) 8);   // biBitCount = 8
+        mem.setInt(32, numColors);     // biClrUsed = 2
+
+        // RGBQUAD little-endian: B=0x00, G=0x00, R=0xFF → rojo
+        mem.setInt(40, 0x00FF0000); // entrada 0: rojo
+        mem.setInt(44, 0x0000FF00); // entrada 1: verde
+
+        // Píxel único en índice 0 (rojo)
+        mem.setByte(40 + numColors * 4, (byte) 0);
+
+        BufferedImage img = DibConverter.toBufferedImage(mem);
+        assertNotNull(img);
+        assertEquals(1, img.getWidth());
+        assertEquals(1, img.getHeight());
+        // palette[0] = 0x00FF0000 → 0xFF000000 | 0x00FF0000 = 0xFFFF0000 (rojo ARGB)
+        assertEquals(0xFFFF0000, img.getRGB(0, 0) | 0xFF000000);
+    }
+
+    @Test
+    void paletteIndexOutOfBoundsThrowsException() {
+        int width = 1, height = 1, numColors = 2;
+        int rowBytes = 4;
+        Memory mem = new Memory(40 + numColors * 4 + height * rowBytes);
+
+        mem.setInt(0,  40);
+        mem.setInt(4,  width);
+        mem.setInt(8,  height);
+        mem.setShort(12, (short) 1);
+        mem.setShort(14, (short) 8);   // 8-bit
+        mem.setInt(32, numColors);     // biClrUsed = 2 (solo 2 entradas)
+
+        mem.setInt(40, 0x00000000); // entrada 0: negro
+        mem.setInt(44, 0x00FFFFFF); // entrada 1: blanco
+
+        // Índice 5 — fuera de rango para paleta de 2 entradas
+        mem.setByte(40 + numColors * 4, (byte) 5);
+
+        assertThrows(IllegalArgumentException.class,
+                     () -> DibConverter.toBufferedImage(mem));
+    }
 }

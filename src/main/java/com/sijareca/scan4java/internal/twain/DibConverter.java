@@ -13,8 +13,14 @@ class DibConverter {
      * y los datos de pixels.
      */
     static BufferedImage toBufferedImage(Pointer p) {
+        if (p == null)
+            throw new IllegalArgumentException("DIB pointer is null");
+
         // Leer BITMAPINFOHEADER
         int  biSize         = p.getInt(0);
+        if (biSize < 40)
+            throw new IllegalArgumentException("Invalid BITMAPINFOHEADER size: " + biSize);
+
         int  biWidth        = p.getInt(4);
         int  biHeight       = p.getInt(8);   // negativo = top-down
         short biBitCount    = p.getShort(14);
@@ -23,6 +29,9 @@ class DibConverter {
         boolean topDown = biHeight < 0;
         int width       = biWidth;
         int height      = topDown ? -biHeight : biHeight;
+
+        if (width <= 0 || height <= 0)
+            throw new IllegalArgumentException("Invalid DIB dimensions: " + width + "x" + height);
 
         return switch (biBitCount) {
             case 8  -> read8bit(p, biSize, width, height, biClrUsed, topDown);
@@ -52,6 +61,8 @@ class DibConverter {
             int srcRow = topDown ? row : (height - row - 1);
             for (int col = 0; col < width; col++) {
                 int palIdx = bitmap[rowBytes * srcRow + col] & 0xFF;
+                if (palIdx >= palette.length)
+                    throw new IllegalArgumentException("Palette index out of bounds: " + palIdx);
                 img.setRGB(col, row, 0xFF000000 | palette[palIdx]);
             }
         }

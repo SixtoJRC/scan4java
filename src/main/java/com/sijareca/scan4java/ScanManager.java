@@ -7,9 +7,15 @@ import com.sijareca.scan4java.spi.ScannerProvider;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.System.Logger.Level.WARNING;
+
 public class ScanManager {
 
-    private static ScanManager INSTANCE;
+    private static final System.Logger logger = System.getLogger(ScanManager.class.getName());
+
+    private static final class Holder {
+        static final ScanManager INSTANCE = new ScanManager();
+    }
 
     private final List<ScannerProvider> providers = List.of(
         new TwainScannerProvider(),
@@ -19,8 +25,7 @@ public class ScanManager {
     private ScanManager() {}
 
     public static ScanManager instance() {
-        if (INSTANCE == null) INSTANCE = new ScanManager();
-        return INSTANCE;
+        return Holder.INSTANCE;
     }
 
     public List<Scanner> getScanners() {
@@ -30,7 +35,7 @@ public class ScanManager {
             try {
                 result.addAll(provider.getScanners());
             } catch (ScanException e) {
-                // provider falló → se ignora, no rompe el conjunto
+                logger.log(WARNING, "Scanner provider failed: {0}", e.getMessage());
             }
         }
         return deduplicate(result);
@@ -43,7 +48,7 @@ public class ScanManager {
     }
 
     // Si un dispositivo aparece en TWAIN y WIA, TWAIN tiene preferencia
-    private List<Scanner> deduplicate(List<Scanner> scanners) {
+    List<Scanner> deduplicate(List<Scanner> scanners) {
         List<Scanner> result = new ArrayList<>();
         for (Scanner candidate : scanners) {
             boolean shadowed = result.stream().anyMatch(existing ->

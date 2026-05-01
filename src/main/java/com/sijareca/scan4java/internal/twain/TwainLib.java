@@ -1,14 +1,11 @@
 package com.sijareca.scan4java.internal.twain;
 
 import com.sun.jna.Library;
-import com.sun.jna.Native;
 import com.sun.jna.Memory;
+import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.win32.W32APIOptions;
-
-//import java.util.Arrays;
-//import java.util.List;
 
 interface TwainLib extends Library {
 

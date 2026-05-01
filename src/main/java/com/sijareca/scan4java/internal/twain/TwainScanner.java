@@ -13,6 +13,9 @@ import java.util.List;
 
 public class TwainScanner implements Scanner {
 
+    private static final System.Logger logger =
+        System.getLogger(TwainScanner.class.getName());
+
     private final String   id;
     private final String   name;
     private       ScanConfig config = ScanConfig.defaults();
@@ -53,7 +56,7 @@ public class TwainScanner implements Scanner {
         }
 
         try {
-            TwainLib.TW_IDENTITY appId = buildAppIdentity();
+            TwainLib.TW_IDENTITY appId = TwainUtils.buildAppIdentity();
 
             // Estado 2→3: abrir DSM
             Memory hwndMem = new Memory(Native.POINTER_SIZE);
@@ -120,9 +123,12 @@ public class TwainScanner implements Scanner {
                     }
 
                     // Estado 5→4: deshabilitar DS
-                    lib.DSM_Entry(appId, dsId,
+                    int rcDisable = lib.DSM_Entry(appId, dsId,
                         TwainLib.DG_CONTROL, TwainLib.DAT_USERINTERFACE,
                         TwainLib.MSG_DISABLEDS, ui);
+                    if (rcDisable != TwainLib.TWRC_SUCCESS)
+                        logger.log(System.Logger.Level.WARNING,
+                            "MSG_DISABLEDS failed (rc={0})", rcDisable);
 
                 } finally {
                     // Estado 4→3: cerrar DS
@@ -209,22 +215,4 @@ public class TwainScanner implements Scanner {
             TwainLib.MSG_RESET, pxfers);
     }
 
-    private TwainLib.TW_IDENTITY buildAppIdentity() {
-        TwainLib.TW_IDENTITY id = new TwainLib.TW_IDENTITY();
-        id.Version.MajorNum  = 1;
-        id.Version.MinorNum  = 0;
-        id.ProtocolMajor     = 2;
-        id.ProtocolMinor     = 3;
-        id.SupportedGroups   = 3; // DG_CONTROL | DG_IMAGE
-        copyString(id.Manufacturer,  "sijareca");
-        copyString(id.ProductFamily, "scan4java");
-        copyString(id.ProductName,   "scan4java");
-        return id;
-    }
-
-    private static void copyString(byte[] target, String value) {
-        byte[] bytes = value.getBytes();
-        System.arraycopy(bytes, 0, target, 0,
-                         Math.min(bytes.length, target.length - 1));
-    }
 }

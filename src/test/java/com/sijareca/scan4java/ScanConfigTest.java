@@ -36,4 +36,22 @@ class ScanConfigTest {
         assertSame(config, config.adf(true));
         assertSame(config, config.duplex(true));
     }
+
+    @Test
+    void dpiNegativoLanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class,
+                     () -> ScanConfig.defaults().dpi(-1));
+    }
+
+    @Test
+    void dpiCeroLanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class,
+                     () -> ScanConfig.defaults().dpi(0));
+    }
+
+    @Test
+    void colorNuloLanzaExcepcion() {
+        assertThrows(NullPointerException.class,
+                     () -> ScanConfig.defaults().color(null));
+    }
 }

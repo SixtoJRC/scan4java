@@ -60,63 +60,39 @@ class ScanManagerTest {
 // --- Tests de deduplicación con datos sintéticos ---
 
     @Test
-    void deduplicateRemovesWiaWhenTwainHasSameName() throws Exception {
-        // Accedemos al método privado deduplicate via reflexión
-        var method = ScanManager.class.getDeclaredMethod("deduplicate", List.class);
-        method.setAccessible(true);
-
+    void deduplicateRemovesWiaWhenTwainHasSameName() {
         Scanner twain = twainScanner("t-001", "HP LaserJet");
         Scanner wia   = wiaScanner("w-001", "HP LaserJet");
 
-        List<Scanner> input  = List.of(twain, wia);
-        @SuppressWarnings("unchecked")
-        List<Scanner> result = (List<Scanner>) method.invoke(
-            ScanManager.instance(), input);
+        List<Scanner> result = ScanManager.instance().deduplicate(List.of(twain, wia));
 
         assertEquals(1, result.size());
         assertEquals(Protocol.TWAIN, result.get(0).getProtocol());
     }
 
     @Test
-    void deduplicateKeepsWiaWhenNoTwainWithSameName() throws Exception {
-        var method = ScanManager.class.getDeclaredMethod("deduplicate", List.class);
-        method.setAccessible(true);
-
+    void deduplicateKeepsWiaWhenNoTwainWithSameName() {
         Scanner twain = twainScanner("t-001", "HP LaserJet");
         Scanner wia   = wiaScanner("w-002", "Canon MFP");
 
-        List<Scanner> input  = List.of(twain, wia);
-        @SuppressWarnings("unchecked")
-        List<Scanner> result = (List<Scanner>) method.invoke(
-            ScanManager.instance(), input);
+        List<Scanner> result = ScanManager.instance().deduplicate(List.of(twain, wia));
 
         assertEquals(2, result.size());
     }
 
     @Test
-    void deduplicateKeepsBothTwainScanners() throws Exception {
-        var method = ScanManager.class.getDeclaredMethod("deduplicate", List.class);
-        method.setAccessible(true);
-
+    void deduplicateKeepsBothTwainScanners() {
         Scanner twain1 = twainScanner("t-001", "HP LaserJet");
         Scanner twain2 = twainScanner("t-002", "Canon MFP");
 
-        List<Scanner> input  = List.of(twain1, twain2);
-        @SuppressWarnings("unchecked")
-        List<Scanner> result = (List<Scanner>) method.invoke(
-            ScanManager.instance(), input);
+        List<Scanner> result = ScanManager.instance().deduplicate(List.of(twain1, twain2));
 
         assertEquals(2, result.size());
     }
 
     @Test
-    void deduplicateHandlesEmptyList() throws Exception {
-        var method = ScanManager.class.getDeclaredMethod("deduplicate", List.class);
-        method.setAccessible(true);
-
-        @SuppressWarnings("unchecked")
-        List<Scanner> result = (List<Scanner>) method.invoke(
-            ScanManager.instance(), List.of());
+    void deduplicateHandlesEmptyList() {
+        List<Scanner> result = ScanManager.instance().deduplicate(List.of());
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
@@ -135,21 +111,12 @@ class ScanManagerTest {
     }
 
     @Test
-    void getScannersFilterByProtocolExecutesLambda() throws Exception {
-        // Forzamos que getScanners(Protocol) filtre sobre una lista con elementos reales
-        // accediendo a deduplicate directamente con scanners sintéticos
-        var deduplicateMethod = ScanManager.class
-            .getDeclaredMethod("deduplicate", List.class);
-        deduplicateMethod.setAccessible(true);
-
+    void getScannersFilterByProtocolExecutesLambda() {
         Scanner t = twainScanner("t-001", "HP");
         Scanner w = wiaScanner("w-001", "Canon");
 
-        @SuppressWarnings("unchecked")
-        List<Scanner> deduped = (List<Scanner>) deduplicateMethod.invoke(
-            ScanManager.instance(), List.of(t, w));
+        List<Scanner> deduped = ScanManager.instance().deduplicate(List.of(t, w));
 
-        // Filtramos manualmente igual que hace getScanners(Protocol)
         List<Scanner> twainOnly = deduped.stream()
             .filter(s -> s.getProtocol() == Protocol.TWAIN)
             .toList();

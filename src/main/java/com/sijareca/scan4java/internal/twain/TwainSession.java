@@ -18,21 +18,8 @@ class TwainSession implements AutoCloseable {
 
     TwainSession(TwainLib lib) throws ScanException {
         this.lib   = lib;
-        this.appId = buildAppIdentity();
+        this.appId = TwainUtils.buildAppIdentity();
         open();
-    }
-
-    private TwainLib.TW_IDENTITY buildAppIdentity() {
-        TwainLib.TW_IDENTITY id = new TwainLib.TW_IDENTITY();
-        id.Version.MajorNum  = 1;
-        id.Version.MinorNum  = 0;
-        id.ProtocolMajor     = 2;
-        id.ProtocolMinor     = 3;
-        id.SupportedGroups   = 2; // DG_IMAGE | DG_CONTROL
-        copyString(id.Manufacturer,  "sijareca");
-        copyString(id.ProductFamily, "scan4java");
-        copyString(id.ProductName,   "scan4java");
-        return id;
     }
 
     private void open() throws ScanException {
@@ -101,9 +88,4 @@ class TwainSession implements AutoCloseable {
         open = false;
     }
 
-    private static void copyString(byte[] target, String value) {
-        byte[] bytes = value.getBytes();
-        System.arraycopy(bytes, 0, target, 0,
-                         Math.min(bytes.length, target.length - 1));
-    }
 }
