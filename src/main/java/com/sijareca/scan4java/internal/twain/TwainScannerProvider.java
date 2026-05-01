@@ -37,6 +37,9 @@ public class TwainScannerProvider implements ScannerProvider {
                     ds.getProductName()
                 ));
             }
+        } catch (ScanException e) {
+            // DSM no disponible o no hay escáneres — devolvemos lista vacía
+            return List.of();
         }
         return result;
     }

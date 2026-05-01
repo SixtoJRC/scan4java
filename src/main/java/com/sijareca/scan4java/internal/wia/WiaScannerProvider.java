@@ -24,6 +24,9 @@ public class WiaScannerProvider implements ScannerProvider {
             for (WiaDeviceInfo info : session.enumerateDevices()) {
                 result.add(new WiaScanner(info.getId(), info.getName()));
             }
+        } catch (ScanException e) {
+            // WIA no disponible — devolvemos lista vacía
+            return List.of();
         }
         return result;
     }
