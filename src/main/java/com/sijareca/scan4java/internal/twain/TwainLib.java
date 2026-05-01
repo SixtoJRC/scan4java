@@ -39,6 +39,21 @@ interface TwainLib extends Library {
     int TWRC_ENDOFLIST    = 0x0009;
     int TWRC_XFERDONE     = 0x0006;
 
+    int DAT_EVENT         = 0x0002;
+    int DAT_STATUS        = 0x0008;
+
+    int MSG_GETDEFAULT    = 0x0003;
+    int MSG_USERSELECT    = 0x0403;
+    int MSG_PROCESSEVENT  = 0x0601;
+
+    int TWRC_NOTDSEVENT   = 0x0005;
+    int TWRC_CANCEL       = 0x0003;
+
+    int MSG_XFERREADY     = 0x0101;
+    int MSG_CLOSEDSREQ    = 0x0102;
+
+    int TWCP_NONE         = 0x0000;
+
     // TW_VERSION: 2+2+2+2+34 = 42 bytes
     @Structure.FieldOrder({"MajorNum","MinorNum","Language","Country","Info"})
     class TW_VERSION extends Structure {
@@ -99,6 +114,18 @@ interface TwainLib extends Library {
         public short Compression;
     }
 
+    @Structure.FieldOrder({"pEvent", "TWMessage"})
+    class TW_EVENT extends Structure {
+        public Pointer pEvent;
+        public short   TWMessage;
+    }
+
+    @Structure.FieldOrder({"ConditionCode", "Reserved"})
+    class TW_STATUS extends Structure {
+        public short ConditionCode;
+        public short Reserved;
+    }
+
     static TwainLib load() {
         return Native.load("TWAINDSM", TwainLib.class,
                            W32APIOptions.DEFAULT_OPTIONS);
@@ -111,5 +138,9 @@ interface TwainLib extends Library {
                   int dg, int dat, int msg, Pointer data);
 
     int DSM_Entry(TW_IDENTITY origin, TW_IDENTITY dest,
-                  int dg, int dat, int msg, Memory data);                  
+                  int dg, int dat, int msg, Memory data);
+
+    int DSM_Entry(TW_IDENTITY origin, TW_IDENTITY dest,
+                int dg, int dat, int msg, int[] data);
+
 }
