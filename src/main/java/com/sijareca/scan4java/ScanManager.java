@@ -1,7 +1,5 @@
 package com.sijareca.scan4java;
 
-import com.sijareca.scan4java.internal.twain.TwainScannerProvider;
-import com.sijareca.scan4java.internal.wia.WiaScannerProvider;
 import com.sijareca.scan4java.spi.ScannerProvider;
 
 import java.util.ArrayList;
@@ -17,12 +15,13 @@ public class ScanManager {
         static final ScanManager INSTANCE = new ScanManager();
     }
 
-    private final List<ScannerProvider> providers = List.of(
-        new TwainScannerProvider(),
-        new WiaScannerProvider()
-    );
+    private final List<ScannerProvider> providers;
 
-    private ScanManager() {}
+    private ScanManager() {
+        this.providers = java.util.stream.StreamSupport
+            .stream(java.util.ServiceLoader.load(ScannerProvider.class).spliterator(), false)
+            .toList();
+    }
 
     public static ScanManager instance() {
         return Holder.INSTANCE;

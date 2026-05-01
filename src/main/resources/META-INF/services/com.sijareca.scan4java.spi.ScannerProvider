@@ -1,0 +1,2 @@
+com.sijareca.scan4java.internal.twain.TwainScannerProvider
+com.sijareca.scan4java.internal.wia.WiaScannerProvider

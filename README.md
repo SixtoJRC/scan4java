@@ -62,7 +62,10 @@ List<Scanner> twainScanners = ScanManager.instance().getScanners(Protocol.TWAIN)
 List<Scanner> wiaScanners = ScanManager.instance().getScanners(Protocol.WIA);
 ```
 
-## API Reference
+## Documentation
+
+*   [Integration Guide (integracion.md)](docs/integracion.md): Detailed guide on how to use scan4java in your Java application.
+*   [Technical Design (scan4java.md)](docs/scan4java.md): Internal design decisions and implementation details.
 
 ### `ScanManager`
 

@@ -99,6 +99,8 @@ class WiaSession implements AutoCloseable {
         String name = variants[1].getBSTR();
         int    type = variants[2].getI4();
 
+        for (WiaLib.PROPVARIANT v : variants) v.clear();
+
         return new WiaDeviceInfo(id, name, type);
     }
 

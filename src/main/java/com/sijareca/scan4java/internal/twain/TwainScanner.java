@@ -29,10 +29,10 @@ public class TwainScanner implements Scanner {
     @Override public String   getName()      { return name;           }
     @Override public Protocol getProtocol()  { return Protocol.TWAIN; }
 
-    @Override public Scanner setDpi(int dpi)          { config.dpi(dpi);       return this; }
-    @Override public Scanner setColor(ColorMode mode) { config.color(mode);    return this; }
-    @Override public Scanner setAdf(boolean adf)      { config.adf(adf);       return this; }
-    @Override public Scanner setDuplex(boolean dup)   { config.duplex(dup);    return this; }
+    @Override public Scanner setDpi(int dpi)          { config = config.dpi(dpi);    return this; }
+    @Override public Scanner setColor(ColorMode mode) { config = config.color(mode);  return this; }
+    @Override public Scanner setAdf(boolean adf)      { config = config.adf(adf);      return this; }
+    @Override public Scanner setDuplex(boolean dup)   { config = config.duplex(dup);   return this; }
 
     @Override
     public List<BufferedImage> scan() throws ScanException {
@@ -80,6 +80,9 @@ public class TwainScanner implements Scanner {
                 }
 
                 try {
+                    // Aplicar configuración (DPI, Color, etc.)
+                    applyConfig(lib, appId, dsId, config);
+
                     // Estado 4→5: habilitar DS (muestra UI del escáner)
                     TwainLib.TW_USERINTERFACE ui = new TwainLib.TW_USERINTERFACE();
                     ui.ShowUI   = 1;
@@ -176,7 +179,7 @@ public class TwainScanner implements Scanner {
         TwainLib.TW_PENDINGXFERS pxfers = new TwainLib.TW_PENDINGXFERS();
 
         do {
-            int[] handle = new int[1];
+            com.sun.jna.ptr.PointerByReference handle = new com.sun.jna.ptr.PointerByReference();
             int rc = lib.DSM_Entry(appId, dsId,
                 TwainLib.DG_IMAGE, TwainLib.DAT_IMAGENATIVEXFER,
                 TwainLib.MSG_GET, handle);
@@ -190,7 +193,7 @@ public class TwainScanner implements Scanner {
             }
 
             // El handle es un HGLOBAL — lo tratamos como Pointer directamente
-            Pointer hGlobal = Pointer.createConstant(handle[0]);
+            Pointer hGlobal = handle.getValue();
 
             Pointer p = Kernel32Heap.INSTANCE.GlobalLock(hGlobal);
             try {
@@ -213,6 +216,57 @@ public class TwainScanner implements Scanner {
         lib.DSM_Entry(appId, dsId,
             TwainLib.DG_CONTROL, TwainLib.DAT_PENDINGXFERS,
             TwainLib.MSG_RESET, pxfers);
+    }
+
+    private void applyConfig(TwainLib lib, TwainLib.TW_IDENTITY appId,
+                             TwainLib.TW_IDENTITY dsId, ScanConfig config) {
+        // Establecer mecanismo de transferencia Nativo (obligatorio para esta lib)
+        setCapability(lib, appId, dsId, TwainLib.ICAP_XFERMECH, TwainLib.TWTY_UINT16, TwainLib.TWSX_NATIVE);
+
+        // Resolución
+        int dpi = config.getDpi();
+        TwainLib.TW_FIX32 fixDpi = TwainLib.TW_FIX32.fromFloat((float)dpi);
+        int dpiVal = (fixDpi.Whole << 16) | (fixDpi.Frac & 0xFFFF);
+        setCapability(lib, appId, dsId, TwainLib.ICAP_XRESOLUTION, TwainLib.TWTY_FIX32, dpiVal);
+        setCapability(lib, appId, dsId, TwainLib.ICAP_YRESOLUTION, TwainLib.TWTY_FIX32, dpiVal);
+
+        // Color
+        int pixelType = switch (config.getColor()) {
+            case BW -> 0;        // TWPT_BW
+            case GRAYSCALE -> 1; // TWPT_GRAY
+            case COLOR -> 2;     // TWPT_RGB
+        };
+        setCapability(lib, appId, dsId, TwainLib.ICAP_PIXELTYPE, TwainLib.TWTY_UINT16, pixelType);
+    }
+
+    private void setCapability(TwainLib lib, TwainLib.TW_IDENTITY appId,
+                               TwainLib.TW_IDENTITY dsId, short capId,
+                               short itemType, int value) {
+        TwainLib.TW_CAPABILITY cap = new TwainLib.TW_CAPABILITY();
+        cap.Cap     = capId;
+        cap.ConType = TwainLib.TWON_ONEVALUE;
+
+        // Reservar memoria para TW_ONEVALUE
+        Pointer hContainer = Kernel32Heap.INSTANCE.GlobalAlloc(0x0040, 6); // GPTR = 0x0040
+        Pointer p = Kernel32Heap.INSTANCE.GlobalLock(hContainer);
+        try {
+            TwainLib.TW_ONEVALUE ov = new TwainLib.TW_ONEVALUE();
+            ov.ItemType = itemType;
+            ov.Item     = value;
+            p.write(0, ov.getPointer().getByteArray(0, 6), 0, 6);
+        } finally {
+            Kernel32Heap.INSTANCE.GlobalUnlock(hContainer);
+        }
+        cap.hContainer = hContainer;
+
+        int rc = lib.DSM_Entry(appId, dsId, TwainLib.DG_CONTROL,
+            TwainLib.DAT_CAPABILITY, TwainLib.MSG_SET, cap);
+
+        if (rc != TwainLib.TWRC_SUCCESS) {
+            logger.log(System.Logger.Level.WARNING,
+                "Failed to set capability {0} (rc={1})", capId, rc);
+            Kernel32Heap.INSTANCE.GlobalFree(hContainer);
+        }
     }
 
 }

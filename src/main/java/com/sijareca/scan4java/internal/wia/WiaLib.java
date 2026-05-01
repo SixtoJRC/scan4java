@@ -43,6 +43,10 @@ class WiaLib {
     static final int WIA_DPS_HORIZONTAL_RESOLUTION = 6147;
     static final int WIA_DPS_VERTICAL_RESOLUTION   = 6148;
     static final int WIA_IPA_DATATYPE              = 4103;
+    static final int WIA_DPS_DOCUMENT_HANDLING_SELECT = 3088;
+    static final int FEEDER  = 0x001;
+    static final int FLATBED = 0x002;
+    static final int DUPLEX  = 0x004;
 
     // Propiedades de formato de salida
     static final int WIA_IPA_FORMAT       = 4106;
@@ -247,6 +251,15 @@ class WiaLib {
             if (vt != VT_I4) return 0;
             return data == null ? 0 : (int) Pointer.nativeValue(data);
         }
+
+        public void clear() {
+            WiaLib.PropVariantClear(getPointer());
+        }
+    }
+
+    static void PropVariantClear(Pointer pvar) {
+        com.sun.jna.Function.getFunction("ole32", "PropVariantClear")
+            .invokeInt(new Object[]{pvar});
     }
 
     // STGMEDIUM simplificado — solo necesitamos TYMED_FILE

@@ -38,7 +38,8 @@ public class TwainScannerProvider implements ScannerProvider {
                 ));
             }
         } catch (ScanException e) {
-            // DSM no disponible o no hay escáneres — devolvemos lista vacía
+            System.getLogger(TwainScannerProvider.class.getName())
+                  .log(System.Logger.Level.DEBUG, "TWAIN getScanners failed: {0}", e.getMessage());
             return List.of();
         }
         return result;

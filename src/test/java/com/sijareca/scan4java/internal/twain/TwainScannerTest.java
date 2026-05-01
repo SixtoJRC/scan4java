@@ -58,7 +58,7 @@ class TwainScannerTest {
 
     @Test
     void scanWithConfigWithoutHardwareThrowsScanException() {
-        ScanConfig config = new ScanConfig().dpi(300).color(ColorMode.GRAYSCALE);
+        ScanConfig config = ScanConfig.defaults().dpi(300).color(ColorMode.GRAYSCALE);
         assertThrows(ScanException.class, () -> scanner.scan(config));
     }
 }

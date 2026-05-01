@@ -59,15 +59,25 @@ public class WiaScanner implements Scanner {
                     // Configurar formato de salida en el item
                     configureItem(scanItem, config);
 
-                    // Transferir a fichero temporal BMP
-                    File tempFile = transferToFile(scanItem);
-                    try {
-                        BufferedImage img = ImageIO.read(tempFile);
-                        if (img != null) pages.add(img);
-                    } catch (IOException e) {
-                        throw new ScanException("Cannot read scanned image", e);
-                    } finally {
-                        tempFile.delete();
+                    // Transferir a ficheros temporales BMP (bucle para ADF)
+                    boolean hasMore = true;
+                    while (hasMore) {
+                        File tempFile = null;
+                        try {
+                            tempFile = transferToFile(scanItem);
+                            BufferedImage img = ImageIO.read(tempFile);
+                            if (img != null) pages.add(img);
+                        } catch (ScanException e) {
+                            // Si falla la transferencia, asumimos que no hay más páginas (o error real)
+                            hasMore = false;
+                        } catch (IOException e) {
+                            throw new ScanException("Cannot read scanned image", e);
+                        } finally {
+                            if (tempFile != null) tempFile.delete();
+                        }
+                        
+                        // Si no pedimos ADF, solo una página
+                        if (!config.isAdf()) hasMore = false;
                     }
                 } finally {
                     scanItem.Release();
@@ -95,6 +105,14 @@ public class WiaScanner implements Scanner {
             writeIntProperty(props, WiaLib.WIA_IPA_DATATYPE,
                 config.getColor() == ColorMode.COLOR ? 3 :
                 config.getColor() == ColorMode.GRAYSCALE ? 2 : 0);
+
+            if (config.isAdf()) {
+                int val = WiaLib.FEEDER;
+                if (config.isDuplex()) val |= WiaLib.DUPLEX;
+                writeIntProperty(props, WiaLib.WIA_DPS_DOCUMENT_HANDLING_SELECT, val);
+            } else {
+                writeIntProperty(props, WiaLib.WIA_DPS_DOCUMENT_HANDLING_SELECT, WiaLib.FLATBED);
+            }
         } finally {
             props.Release();
         }
@@ -180,6 +198,7 @@ public class WiaScanner implements Scanner {
         vars[0].data = Pointer.createConstant(value);
         vars[0].write();
         HRESULT hr = props.WriteMultiple(1, specs, vars, 2);
+        vars[0].clear();
         if (hr.intValue() != WiaLib.S_OK)
             throw new ScanException("Failed to write WIA property " + propId
                                     + " (hr=0x" + Integer.toHexString(hr.intValue()) + ")");

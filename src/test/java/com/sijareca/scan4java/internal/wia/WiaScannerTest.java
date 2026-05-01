@@ -57,7 +57,7 @@ class WiaScannerTest {
 
     @Test
     void scanWithConfigWithoutHardwareThrowsScanException() {
-        ScanConfig config = new ScanConfig().dpi(200).color(ColorMode.BW);
+        ScanConfig config = ScanConfig.defaults().dpi(200).color(ColorMode.BW);
         assertThrows(ScanException.class, () -> scanner.scan(config));
     }
 }

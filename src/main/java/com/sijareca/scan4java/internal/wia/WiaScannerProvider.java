@@ -25,7 +25,8 @@ public class WiaScannerProvider implements ScannerProvider {
                 result.add(new WiaScanner(info.getId(), info.getName()));
             }
         } catch (ScanException e) {
-            // WIA no disponible — devolvemos lista vacía
+            System.getLogger(WiaScannerProvider.class.getName())
+                  .log(System.Logger.Level.DEBUG, "WIA getScanners failed: {0}", e.getMessage());
             return List.of();
         }
         return result;

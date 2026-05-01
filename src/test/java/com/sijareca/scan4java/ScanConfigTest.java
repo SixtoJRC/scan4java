@@ -16,7 +16,7 @@ class ScanConfigTest {
 
     @Test
     void fluentBuilderSetsAllValues() {
-        ScanConfig config = new ScanConfig()
+        ScanConfig config = ScanConfig.defaults()
             .dpi(300)
             .color(ColorMode.COLOR)
             .adf(true)
@@ -29,12 +29,12 @@ class ScanConfigTest {
     }
 
     @Test
-    void fluentBuilderReturnsItself() {
-        ScanConfig config = new ScanConfig();
-        assertSame(config, config.dpi(300));
-        assertSame(config, config.color(ColorMode.BW));
-        assertSame(config, config.adf(true));
-        assertSame(config, config.duplex(true));
+    void isImmutable() {
+        ScanConfig config = ScanConfig.defaults();
+        assertNotSame(config, config.dpi(300));
+        assertNotSame(config, config.color(ColorMode.BW));
+        assertNotSame(config, config.adf(true));
+        assertNotSame(config, config.duplex(true));
     }
 
     @Test

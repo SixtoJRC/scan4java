@@ -18,6 +18,7 @@ interface TwainLib extends Library {
     int DAT_USERINTERFACE = 0x0009;
     int DAT_IMAGEINFO     = 0x0101;
     int DG_IMAGE          = 0x0002;
+    int DAT_CAPABILITY    = 0x0001;
 
     int MSG_OPENDSM       = 0x0301;
     int MSG_CLOSEDSM      = 0x0302;
@@ -29,6 +30,7 @@ interface TwainLib extends Library {
     int MSG_GETFIRST      = 0x0003;
     int MSG_GETNEXT       = 0x0004;
     int MSG_ENDXFER       = 0x0701;
+    int MSG_SET           = 0x0006;
     int MSG_RESET         = 0x0007;
 
     int TWRC_SUCCESS      = 0x0000;
@@ -117,6 +119,42 @@ interface TwainLib extends Library {
         public short   TWMessage;
     }
 
+    @Structure.FieldOrder({"Cap", "ConType", "hContainer"})
+    class TW_CAPABILITY extends Structure {
+        public short   Cap;
+        public short   ConType;
+        public Pointer hContainer;
+    }
+
+    @Structure.FieldOrder({"ItemType", "Item"})
+    class TW_ONEVALUE extends Structure {
+        public short ItemType;
+        public int   Item;
+    }
+
+    // Capability constants
+    short ICAP_XRESOLUTION = 0x1118;
+    short ICAP_YRESOLUTION = 0x1119;
+    short ICAP_PIXELTYPE   = 0x0101;
+    short ICAP_XFERMECH    = 0x0103;
+    short TWSX_NATIVE      = 0x0000;
+    short TWON_ONEVALUE    = 0x0005;
+    short TWTY_UINT16      = 0x0004;
+    short TWTY_FIX32       = 0x0007;
+
+    @Structure.FieldOrder({"Whole", "Frac"})
+    class TW_FIX32 extends Structure {
+        public short Whole;
+        public short Frac;
+        public float toFloat() { return Whole + (float)(Frac & 0xFFFF) / 65536.0f; }
+        public static TW_FIX32 fromFloat(float f) {
+            TW_FIX32 fix = new TW_FIX32();
+            fix.Whole = (short) f;
+            fix.Frac  = (short)((f - fix.Whole) * 65536.0f);
+            return fix;
+        }
+    }
+
     @Structure.FieldOrder({"ConditionCode", "Reserved"})
     class TW_STATUS extends Structure {
         public short ConditionCode;
@@ -139,5 +177,8 @@ interface TwainLib extends Library {
 
     int DSM_Entry(TW_IDENTITY origin, TW_IDENTITY dest,
                 int dg, int dat, int msg, int[] data);
+
+    int DSM_Entry(TW_IDENTITY origin, TW_IDENTITY dest,
+                int dg, int dat, int msg, com.sun.jna.ptr.PointerByReference data);
 
 }

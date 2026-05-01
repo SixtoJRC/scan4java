@@ -10,6 +10,7 @@ interface Kernel32Heap extends Library {
     Kernel32Heap INSTANCE = Native.load(
         "kernel32", Kernel32Heap.class, W32APIOptions.DEFAULT_OPTIONS);
 
+    Pointer GlobalAlloc(int uFlags, long dwBytes);
     Pointer GlobalLock(Pointer hMem);
     boolean GlobalUnlock(Pointer hMem);
     Pointer GlobalFree(Pointer hMem);
